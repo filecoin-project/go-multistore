@@ -11,11 +11,11 @@ go-datastore instance.
 
 You may want to familiarize yourself with various IPFS storage layer components:
 
-[DataStore](https://github.com/ipfs/go-datastore)
-[BlockStore](https://github.com/ipfs/go-ipfs-blockstore)
-[FileStore](https://github.com/ipfs/go-filestore)
-[BlockService](https://github.com/ipfs/go-blockservice)
-[DAGService](https://github.com/ipfs/go-ipld-format/blob/master/merkledag.go)
+- [DataStore](https://github.com/ipfs/go-datastore)
+- [BlockStore](https://github.com/ipfs/go-ipfs-blockstore)
+- [FileStore](https://github.com/ipfs/go-filestore)
+- [BlockService](https://github.com/ipfs/go-blockservice)
+- [DAGService](https://github.com/ipfs/go-ipld-format/blob/master/merkledag.go)
 
 ## Installation
 ```bash
