@@ -1,4 +1,4 @@
-package importmgr
+package multistore
 
 import (
 	"github.com/ipfs/go-blockservice"

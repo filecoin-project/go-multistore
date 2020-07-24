@@ -1,4 +1,4 @@
-package importmgr
+package multistore
 
 import (
 	"encoding/json"
