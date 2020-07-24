@@ -12,6 +12,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	ktds "github.com/ipfs/go-datastore/keytransform"
 	"github.com/ipfs/go-datastore/query"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 )
 
 type MultiStore struct {
@@ -185,4 +186,8 @@ func (mds *MultiStore) Close() error {
 	mds.open = make(map[int]*Store)
 
 	return err
+}
+
+func (mds *MultiStore) MultiReadBlockstore() blockstore.Blockstore {
+	return &multiReadBs{mds}
 }
