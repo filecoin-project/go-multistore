@@ -15,11 +15,16 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 )
 
+// StoreID identifies a unique instance of a store
+type StoreID uint64
+
+// MultiStore is a wrapper around a datastore that provides multiple isolated
+// instances of IPFS storage components -> BlockStore, FileStore, DAGService, etc
 type MultiStore struct {
 	ds datastore.Batching
 
-	open map[int]*Store
-	next int
+	open map[StoreID]*Store
+	next StoreID
 
 	lk sync.RWMutex
 }
@@ -27,22 +32,24 @@ type MultiStore struct {
 var dsListKey = datastore.NewKey("/list")
 var dsMultiKey = datastore.NewKey("/multi")
 
+// NewMultiDstore returns a new instance of a MultiStore for the given datastore
+// instance
 func NewMultiDstore(ds datastore.Batching) (*MultiStore, error) {
 	listBytes, err := ds.Get(dsListKey)
 	if xerrors.Is(err, datastore.ErrNotFound) {
-		listBytes, _ = json.Marshal([]int{})
+		listBytes, _ = json.Marshal(StoreIDList{})
 	} else if err != nil {
 		return nil, xerrors.Errorf("could not read multistore list: %w", err)
 	}
 
-	var ids []int
+	var ids StoreIDList
 	if err := json.Unmarshal(listBytes, &ids); err != nil {
 		return nil, xerrors.Errorf("could not unmarshal multistore list: %w", err)
 	}
 
 	mds := &MultiStore{
 		ds:   ds,
-		open: map[int]*Store{},
+		open: map[StoreID]*Store{},
 	}
 
 	for _, i := range ids {
@@ -59,7 +66,8 @@ func NewMultiDstore(ds datastore.Batching) (*MultiStore, error) {
 	return mds, nil
 }
 
-func (mds *MultiStore) Next() int {
+// Next returns the next available StoreID
+func (mds *MultiStore) Next() StoreID {
 	mds.lk.Lock()
 	defer mds.lk.Unlock()
 
@@ -68,11 +76,11 @@ func (mds *MultiStore) Next() int {
 }
 
 func (mds *MultiStore) updateStores() error {
-	stores := make([]int, 0, len(mds.open))
+	stores := make(StoreIDList, 0, len(mds.open))
 	for k := range mds.open {
 		stores = append(stores, k)
 	}
-	sort.Ints(stores)
+	sort.Sort(stores)
 
 	listBytes, err := json.Marshal(stores)
 	if err != nil {
@@ -85,7 +93,8 @@ func (mds *MultiStore) updateStores() error {
 	return nil
 }
 
-func (mds *MultiStore) Get(i int) (*Store, error) {
+// Get returns the store for the given ID
+func (mds *MultiStore) Get(i StoreID) (*Store, error) {
 	mds.lk.Lock()
 	defer mds.lk.Unlock()
 
@@ -112,20 +121,22 @@ func (mds *MultiStore) Get(i int) (*Store, error) {
 	return mds.open[i], nil
 }
 
-func (mds *MultiStore) List() []int {
+// List returns a list of all known store IDs
+func (mds *MultiStore) List() StoreIDList {
 	mds.lk.RLock()
 	defer mds.lk.RUnlock()
 
-	out := make([]int, 0, len(mds.open))
+	out := make(StoreIDList, 0, len(mds.open))
 	for i := range mds.open {
 		out = append(out, i)
 	}
-	sort.Ints(out)
+	sort.Sort(out)
 
 	return out
 }
 
-func (mds *MultiStore) Delete(i int) error {
+// Delete deletes the store with the given id, including all of its data
+func (mds *MultiStore) Delete(i StoreID) error {
 	mds.lk.Lock()
 	defer mds.lk.Unlock()
 
@@ -175,6 +186,7 @@ func (mds *MultiStore) Delete(i int) error {
 	return nil
 }
 
+// Close closes all open datastores
 func (mds *MultiStore) Close() error {
 	mds.lk.Lock()
 	defer mds.lk.Unlock()
@@ -183,11 +195,28 @@ func (mds *MultiStore) Close() error {
 	for _, s := range mds.open {
 		err = multierr.Append(err, s.Close())
 	}
-	mds.open = make(map[int]*Store)
+	mds.open = make(map[StoreID]*Store)
 
 	return err
 }
 
+// MultiReadBlockstore returns a single Blockstore that will try to read from
+// all of the blockstores tracked by this multistore
 func (mds *MultiStore) MultiReadBlockstore() blockstore.Blockstore {
 	return &multiReadBs{mds}
+}
+
+// StoreIDList is just a list of StoreID that implements sort.Interface
+type StoreIDList []StoreID
+
+func (s StoreIDList) Len() int {
+	return len(s)
+}
+
+func (s StoreIDList) Less(i, j int) bool {
+	return s[i] < s[j]
+}
+
+func (s StoreIDList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }

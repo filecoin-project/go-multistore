@@ -13,6 +13,9 @@ import (
 	ipldprime "github.com/ipld/go-ipld-prime"
 )
 
+// Store is a single store instance returned by the MultiStore.
+// it gives public access to the blockstore, filestore, dag service,
+// and an ipld-prime loader/storer
 type Store struct {
 	ds datastore.Batching
 
@@ -58,6 +61,7 @@ func openStore(ds datastore.Batching) (*Store, error) {
 	}, nil
 }
 
+// Close closes down the blockservice used by the DAG Service for this store
 func (s *Store) Close() error {
 	return s.bsvc.Close()
 }

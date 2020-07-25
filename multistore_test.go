@@ -42,21 +42,21 @@ func TestMultistore(t *testing.T) {
 	t.Run("lists stores", func(t *testing.T) {
 		storeIndexes := multiDS.List()
 		require.Len(t, storeIndexes, 5)
-		require.Equal(t, []int{1, 2, 3, 4, 5}, storeIndexes)
+		require.Equal(t, multistore.StoreIDList{1, 2, 3, 4, 5}, storeIndexes)
 
 		// getting a second time does not make a new store
 		_, err := multiDS.Get(3)
 		require.NoError(t, err)
 		storeIndexes = multiDS.List()
 		require.Len(t, storeIndexes, 5)
-		require.Equal(t, []int{1, 2, 3, 4, 5}, storeIndexes)
+		require.Equal(t, multistore.StoreIDList{1, 2, 3, 4, 5}, storeIndexes)
 	})
 
 	t.Run("delete stores", func(t *testing.T) {
 		multiDS.Delete(4)
 		storeIndexes := multiDS.List()
 		require.Len(t, storeIndexes, 4)
-		require.Equal(t, []int{1, 2, 3, 5}, storeIndexes)
+		require.Equal(t, multistore.StoreIDList{1, 2, 3, 5}, storeIndexes)
 
 		qres, err := ds.Query(query.Query{KeysOnly: true})
 		require.NoError(t, err)
@@ -72,10 +72,10 @@ func TestMultistore(t *testing.T) {
 
 		storeIndexes := newMultiDS.List()
 		require.Len(t, storeIndexes, 4)
-		require.Equal(t, []int{1, 2, 3, 5}, storeIndexes)
+		require.Equal(t, multistore.StoreIDList{1, 2, 3, 5}, storeIndexes)
 
 		next := newMultiDS.Next()
-		require.Equal(t, 6, next)
+		require.Equal(t, multistore.StoreID(6), next)
 	})
 }
 
