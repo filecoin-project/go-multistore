@@ -5,12 +5,17 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipfs/go-filestore"
+	"github.com/ipfs/go-graphsync/storeutil"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
+	ipldprime "github.com/ipld/go-ipld-prime"
 )
 
+// Store is a single store instance returned by the MultiStore.
+// it gives public access to the blockstore, filestore, dag service,
+// and an ipld-prime loader/storer
 type Store struct {
 	ds datastore.Batching
 
@@ -19,8 +24,10 @@ type Store struct {
 
 	Bstore blockstore.Blockstore
 
-	bsvc blockservice.BlockService
-	DAG  ipld.DAGService
+	bsvc   blockservice.BlockService
+	DAG    ipld.DAGService
+	Loader ipldprime.Loader
+	Storer ipldprime.Storer
 }
 
 func openStore(ds datastore.Batching) (*Store, error) {
@@ -36,6 +43,9 @@ func openStore(ds datastore.Batching) (*Store, error) {
 	bsvc := blockservice.New(ibs, offline.Exchange(ibs))
 	dag := merkledag.NewDAGService(bsvc)
 
+	loader := storeutil.LoaderForBlockstore(ibs)
+	storer := storeutil.StorerForBlockstore(ibs)
+
 	return &Store{
 		ds: ds,
 
@@ -44,11 +54,14 @@ func openStore(ds datastore.Batching) (*Store, error) {
 
 		Bstore: ibs,
 
-		bsvc: bsvc,
-		DAG:  dag,
+		bsvc:   bsvc,
+		DAG:    dag,
+		Loader: loader,
+		Storer: storer,
 	}, nil
 }
 
+// Close closes down the blockservice used by the DAG Service for this store
 func (s *Store) Close() error {
 	return s.bsvc.Close()
 }
