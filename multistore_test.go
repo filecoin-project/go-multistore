@@ -79,6 +79,53 @@ func TestMultistore(t *testing.T) {
 	})
 }
 
+func TestAddAndDeleteSameDataDifferentStores(t *testing.T) {
+	ds := dss.MutexWrap(datastore.NewMapDatastore())
+	multiDS, err := multistore.NewMultiDstore(ds)
+	require.NoError(t, err)
+
+	blks := generateBlocksOfSize(1, 100)
+	targetBlock := blks[0]
+
+	// Create two multi-stores with the same block
+	var stores []*multistore.Store
+	for i := 0; i < 2; i++ {
+		next := multiDS.Next()
+		store, err := multiDS.Get(next)
+		require.NoError(t, err)
+		stores = append(stores, store)
+		err = store.Bstore.Put(targetBlock)
+		require.NoError(t, err)
+	}
+
+	// Expect the block to be in both multi-store's blockstore
+	_, err = stores[0].Bstore.Get(targetBlock.Cid())
+	require.NoError(t, err)
+	_, err = stores[1].Bstore.Get(targetBlock.Cid())
+	require.NoError(t, err)
+
+	// Delete the first multi-store
+	err = multiDS.Delete(0)
+	require.NoError(t, err)
+
+	// Expect the block to be in both multi-store's blockstore
+	_, err = stores[0].Bstore.Get(targetBlock.Cid())
+	require.NoError(t, err)
+	_, err = stores[1].Bstore.Get(targetBlock.Cid())
+	require.NoError(t, err)
+
+	// Delete the other multi-store
+	err = multiDS.Delete(1)
+	require.NoError(t, err)
+
+	// Expect not to be able to get the block any more from either
+	// multi-store's blockstore
+	_, err = stores[0].Bstore.Get(targetBlock.Cid())
+	require.Error(t, err)
+	_, err = stores[1].Bstore.Get(targetBlock.Cid())
+	require.Error(t, err)
+}
+
 var seedSeq int64 = 0
 
 func randomBytes(n int64) []byte {
