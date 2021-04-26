@@ -89,11 +89,13 @@ func TestAddAndDeleteSameDataDifferentStores(t *testing.T) {
 
 	// Create two multi-stores with the same block
 	var stores []*multistore.Store
+	var storeIDs []multistore.StoreID
 	for i := 0; i < 2; i++ {
 		next := multiDS.Next()
 		store, err := multiDS.Get(next)
 		require.NoError(t, err)
 		stores = append(stores, store)
+		storeIDs = append(storeIDs, next)
 		err = store.Bstore.Put(targetBlock)
 		require.NoError(t, err)
 	}
@@ -105,25 +107,25 @@ func TestAddAndDeleteSameDataDifferentStores(t *testing.T) {
 	require.NoError(t, err)
 
 	// Delete the first multi-store
-	err = multiDS.Delete(0)
+	err = multiDS.Delete(storeIDs[0])
 	require.NoError(t, err)
 
-	// Expect the block to be in both multi-store's blockstore
+	// Expect the block to only be in the second multi-store's blockstore
 	_, err = stores[0].Bstore.Get(targetBlock.Cid())
-	require.NoError(t, err)
+	require.Error(t, err) // expect error because block was deleted from first multi-store
 	_, err = stores[1].Bstore.Get(targetBlock.Cid())
 	require.NoError(t, err)
 
 	// Delete the other multi-store
-	err = multiDS.Delete(1)
+	err = multiDS.Delete(storeIDs[1])
 	require.NoError(t, err)
 
 	// Expect not to be able to get the block any more from either
 	// multi-store's blockstore
 	_, err = stores[0].Bstore.Get(targetBlock.Cid())
-	require.Error(t, err)
+	require.Error(t, err) // expect error because block is not found
 	_, err = stores[1].Bstore.Get(targetBlock.Cid())
-	require.Error(t, err)
+	require.Error(t, err) // expect error because block is not found
 }
 
 var seedSeq int64 = 0
