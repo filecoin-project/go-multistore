@@ -24,10 +24,9 @@ type Store struct {
 
 	Bstore blockstore.Blockstore
 
-	bsvc   blockservice.BlockService
-	DAG    ipld.DAGService
-	Loader ipldprime.Loader
-	Storer ipldprime.Storer
+	bsvc       blockservice.BlockService
+	DAG        ipld.DAGService
+	LinkSystem ipldprime.LinkSystem
 }
 
 func openStore(ds datastore.Batching) (*Store, error) {
@@ -43,8 +42,7 @@ func openStore(ds datastore.Batching) (*Store, error) {
 	bsvc := blockservice.New(ibs, offline.Exchange(ibs))
 	dag := merkledag.NewDAGService(bsvc)
 
-	loader := storeutil.LoaderForBlockstore(ibs)
-	storer := storeutil.StorerForBlockstore(ibs)
+	lsys := storeutil.LinkSystemForBlockstore(ibs)
 
 	return &Store{
 		ds: ds,
@@ -54,10 +52,9 @@ func openStore(ds datastore.Batching) (*Store, error) {
 
 		Bstore: ibs,
 
-		bsvc:   bsvc,
-		DAG:    dag,
-		Loader: loader,
-		Storer: storer,
+		bsvc:       bsvc,
+		DAG:        dag,
+		LinkSystem: lsys,
 	}, nil
 }
 
