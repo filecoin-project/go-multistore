@@ -9,7 +9,7 @@ require (
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-filestore v1.0.0
-	github.com/ipfs/go-graphsync v0.8.0
+	github.com/ipfs/go-graphsync v0.7.1-0.20210422234828-eab6642fc250
 	github.com/ipfs/go-ipfs-blockstore v1.0.0
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipld-format v0.2.0
