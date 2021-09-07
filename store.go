@@ -4,7 +4,6 @@ import (
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
-	"github.com/ipfs/go-filestore"
 	"github.com/ipfs/go-graphsync/storeutil"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -14,50 +13,37 @@ import (
 )
 
 // Store is a single store instance returned by the MultiStore.
-// it gives public access to the blockstore, filestore, dag service,
-// and an ipld-prime loader/storer
+// it gives public access to the blockstore, dag service,
+// and an ipld-prime linksystem
 type Store struct {
 	ds datastore.Batching
 
-	fm     *filestore.FileManager
-	Fstore *filestore.Filestore
-
 	Bstore blockstore.Blockstore
 
-	bsvc   blockservice.BlockService
-	DAG    ipld.DAGService
-	Loader ipldprime.Loader
-	Storer ipldprime.Storer
+	bsvc       blockservice.BlockService
+	DAG        ipld.DAGService
+	LinkSystem ipldprime.LinkSystem
 }
 
 func openStore(ds datastore.Batching) (*Store, error) {
 	blocks := namespace.Wrap(ds, datastore.NewKey("blocks"))
 	bs := blockstore.NewBlockstore(blocks)
 
-	fm := filestore.NewFileManager(ds, "/")
-	fm.AllowFiles = true
-
-	fstore := filestore.NewFilestore(bs, fm)
-	ibs := blockstore.NewIdStore(fstore)
+	ibs := blockstore.NewIdStore(bs)
 
 	bsvc := blockservice.New(ibs, offline.Exchange(ibs))
 	dag := merkledag.NewDAGService(bsvc)
 
-	loader := storeutil.LoaderForBlockstore(ibs)
-	storer := storeutil.StorerForBlockstore(ibs)
+	lsys := storeutil.LinkSystemForBlockstore(ibs)
 
 	return &Store{
 		ds: ds,
 
-		fm:     fm,
-		Fstore: fstore,
-
 		Bstore: ibs,
 
-		bsvc:   bsvc,
-		DAG:    dag,
-		Loader: loader,
-		Storer: storer,
+		bsvc:       bsvc,
+		DAG:        dag,
+		LinkSystem: lsys,
 	}, nil
 }
 
